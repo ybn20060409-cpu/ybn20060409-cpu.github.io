@@ -1,0 +1,26 @@
+{
+  "site": {
+    "name": "残影丶浪",
+    "tagline": "记录学习、技术与生活",
+    "description": "残影丶浪的个人博客 —— 写作是最好的思考方式。分享技术笔记、学习心得与生活随想。",
+    "url": "https://canyinglang.github.io",
+    "language": "zh-CN",
+    "keywords": "博客,技术,编程,学习,思考",
+    "since": 2025
+  },
+  "author": {
+    "name": "残影丶浪",
+    "avatar": "🌊",
+    "bio": "一个热爱技术的开发者，相信写作是最好的思考方式。",
+    "philosophy": "种一棵树最好的时间是十年前，其次是现在。写作不只是记录，更是与自己对话的过程。在这里，我希望通过文字沉淀思考、分享知识，也期待未来能与更多人一起，用更新奇的方式探索思想的可能性。"
+  },
+  "nav": [
+    { "label": "首页", "href": "/" },
+    { "label": "关于", "href": "/about.html" }
+  ],
+  "social": [
+    { "platform": "GitHub", "url": "https://github.com/canyinglang", "icon": "github" },
+    { "platform": "邮箱", "url": "mailto:ybn20060409@163.com", "icon": "email" }
+  ],
+  "footer": "© 2025–2026 残影丶浪 · 由 GitHub Pages 驱动"
+}

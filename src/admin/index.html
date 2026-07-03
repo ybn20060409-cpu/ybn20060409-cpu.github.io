@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理后台 — 残影丶浪的博客</title>
+<style>
+:root{--bg:#0f0f14;--card:#1a1a24;--border:#2a2a3a;--text:#d0d0d8;--muted:#888;--accent:#6ec6f8;--danger:#e87890;--input:#12121a;--radius:10px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:15px;scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6}
+a{color:var(--accent);text-decoration:none}
+button{cursor:pointer;font:inherit;border:none;border-radius:var(--radius);padding:8px 18px;font-size:.9rem;transition:background .2s,opacity .2s}
+button:active{opacity:.8}
+.btn-primary{background:var(--accent);color:#0f0f14;font-weight:600}
+.btn-primary:hover{filter:brightness(1.1)}
+.btn-danger{background:transparent;color:var(--danger);border:1px solid var(--danger)}
+.btn-danger:hover{background:var(--danger);color:#fff}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
+.btn-ghost:hover{color:var(--text);border-color:var(--muted)}
+input,textarea,select{font:inherit;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;outline:none;transition:border-color .2s}
+input:focus,textarea:focus,select:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:200px;font-family:"JetBrains Mono","Fira Code",monospace;font-size:.85rem;line-height:1.6}
+.container{max-width:1100px;margin:0 auto;padding:24px 20px}
+header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:32px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+header h1{font-size:1.5rem;font-weight:700;display:flex;align-items:center;gap:8px}
+header .actions{display:flex;gap:8px;align-items:center}
+.login-panel{max-width:440px;margin:120px auto;background:var(--card);border-radius:var(--radius);padding:36px 32px;text-align:center;border:1px solid var(--border)}
+.login-panel h2{font-size:1.3rem;margin-bottom:8px}
+.login-panel p{color:var(--muted);font-size:.9rem;margin-bottom:24px}
+.login-panel input{width:100%;margin-bottom:16px}
+.login-panel .hint{font-size:.75rem;color:var(--muted);margin-top:12px}
+.post-list{display:flex;flex-direction:column;gap:12px}
+.post-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;transition:border-color .2s;cursor:pointer}
+.post-card:hover{border-color:var(--accent)}
+.post-card.pinned{border-left:3px solid var(--accent)}
+.post-info{flex:1;min-width:0}
+.post-info h3{font-size:1.05rem;font-weight:600;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.post-meta{font-size:.8rem;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap}
+.post-meta .tag{background:rgba(110,198,248,.12);color:var(--accent);padding:1px 8px;border-radius:20px;font-size:.75rem}
+.post-actions{display:flex;gap:6px;flex-shrink:0}
+.post-empty{text-align:center;padding:60px 20px;color:var(--muted)}
+.post-empty .icon{font-size:3rem;margin-bottom:12px}
+.editor-overlay{position:fixed;inset:0;background:var(--bg);z-index:100;overflow-y:auto;display:flex;flex-direction:column}
+.editor-overlay .editor-header{display:flex;align-items:center;gap:12px;padding:14px 24px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;flex-wrap:wrap}
+.editor-header .title-input{flex:1;min-width:200px;font-size:1.1rem;font-weight:600;background:transparent;border:1px solid transparent;padding:8px 12px}
+.editor-header .title-input:focus{border-color:var(--accent)}
+.editor-body{display:flex;flex:1;min-height:0}
+.editor-pane{flex:1;padding:20px 24px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.editor-pane.preview-pane{background:var(--card);border-left:1px solid var(--border);overflow-y:auto;padding:24px}
+.preview-content{font-size:.95rem;line-height:1.8}
+.preview-content h1,.preview-content h2,.preview-content h3{margin-top:1.2em;margin-bottom:.5em}
+.preview-content p{margin-bottom:.8em}
+.preview-content code{background:rgba(110,198,248,.1);padding:2px 6px;border-radius:4px;font-size:.85em}
+.preview-content pre{background:rgba(0,0,0,.3);padding:16px;border-radius:8px;overflow-x:auto;margin:12px 0}
+.preview-content pre code{background:transparent;padding:0}
+.preview-content blockquote{border-left:3px solid var(--accent);padding-left:14px;color:var(--muted);margin:12px 0}
+.preview-content img{max-width:100%;border-radius:8px}
+.preview-content a{color:var(--accent)}
+.editor-meta{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.editor-meta input{width:160px}
+.editor-meta label{font-size:.8rem;color:var(--muted);display:flex;align-items:center;gap:4px}
+.editor-meta label input[type=checkbox]{width:auto;margin:0;accent-color:var(--accent)}
+.editor-footer{display:flex;align-items:center;justify-content:space-between;padding:10px 24px;background:var(--card);border-top:1px solid var(--border);font-size:.78rem;color:var(--muted);flex-wrap:wrap;gap:8px}
+.editor-footer .shortcut{display:inline-flex;align-items:center;gap:6px;margin:0 6px}
+.editor-footer kbd{background:rgba(255,255,255,.08);padding:2px 7px;border-radius:4px;font-size:.72rem;border:1px solid var(--border)}
+.toast-container{position:fixed;bottom:28px;right:28px;z-index:110;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--card);border:1px solid var(--border);padding:12px 20px;border-radius:var(--radius);font-size:.85rem;animation:toastIn .3s ease;pointer-events:auto;max-width:400px}
+.toast.success{border-color:var(--accent)}
+.toast.error{border-color:var(--danger)}
+@keyframes toastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.loading{text-align:center;padding:40px;color:var(--muted)}
+.loading::after{content:"";display:inline-block;width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-left:8px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+#draft-banner{background:rgba(110,198,248,.1);border:1px solid var(--accent);border-radius:var(--radius);padding:10px 16px;margin-bottom:12px;font-size:.85rem;display:none;align-items:center;gap:10px;flex-wrap:wrap}
+#draft-banner .btn-ghost{font-size:.8rem;padding:4px 12px}
+@media(max-width:640px){
+  .editor-body{flex-direction:column}
+  .editor-pane.preview-pane{display:none}
+  .editor-pane.preview-pane.show{display:block}
+  .post-card{flex-direction:column;align-items:flex-start}
+  header{flex-direction:column;align-items:flex-start}
+  .container{padding:16px 12px}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<div class="container" id="app"></div>
+<div class="toast-container" id="toasts"></div>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+(function(){
+const REPO_OWNER='canyinglang',REPO_NAME='canyinglang.github.io',POSTS_PATH='posts/',BRANCH='main';
+const API='https://api.github.com/repos/'+REPO_OWNER+'/'+REPO_NAME;
+const el=(s)=>document.querySelector(s),elc=(s)=>document.createElement(s);
+function toast(msg,type){type=type||'';var c=el('#toasts'),t=elc('div');t.className='toast '+type;t.textContent=msg;c.appendChild(t);setTimeout(function(){t.remove()},3000)}
+
+var token=localStorage.getItem('blog_token')||'';
+var posts=[],editingFile=null,editingSha=null,draftTimer=null,globalTags=[];
+
+function b64(v){return btoa(unescape(encodeURIComponent(v)))}
+function db64(v){return decodeURIComponent(escape(atob(v)))}
+
+function slug(s){
+  return s.replace(/[^\w\u4e00-\u9fff]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').toLowerCase()||'untitled';
+}
+
+function gh(path,opts){opts=opts||{};opts.headers=opts.headers||{};opts.headers.Authorization='token '+token;return fetch(API+'/'+path,opts)}
+
+async function fetchPosts(){
+  try{
+    var r=await gh('contents/'+POSTS_PATH+'?ref='+BRANCH);
+    if(!r.ok)throw new Error(r.status+' '+r.statusText);
+    var files=await r.json();
+    var mdFiles=files.filter(function(f){return f.name.endsWith('.md')});
+    posts=[];
+    for(var i=0;i<mdFiles.length;i++){
+      var f=mdFiles[i];
+      var fr=await gh('contents/'+POSTS_PATH+f.name+'?ref='+BRANCH);
+      if(!fr.ok)continue;
+      var j=await fr.json();
+      var raw=db64(j.content);
+      var meta=parseFront(raw);
+      posts.push({name:f.name,path:POSTS_PATH+f.name,sha:j.sha,title:meta.title||f.name.replace('.md',''),date:meta.date||'',tags:meta.tags||[],pinned:!!meta.pinned,summary:meta.summary||'',raw:raw});
+    }
+    posts.sort(function(a,b){if(a.pinned!==b.pinned)return a.pinned?-1:1;return (b.date||'').localeCompare(a.date||'')});
+    updateTags();
+  }catch(e){toast('加载失败: '+e.message,'error')}
+}
+
+function parseFront(raw){
+  var m={};if(!raw||!raw.startsWith('---'))return m;
+  var idx=raw.indexOf('---',3);if(idx===-1)return m;
+  var fm=raw.substring(3,idx).trim();
+  fm.split('\n').forEach(function(line){
+    var ci=line.indexOf(':');if(ci===-1)return;
+    var k=line.substring(0,ci).trim(),v=line.substring(ci+1).trim();
+    if((v.startsWith('"')&&v.endsWith('"'))||(v.startsWith("'")&&v.endsWith("'")))v=v.slice(1,-1);
+    if(k==='tags'){
+      m.tags=v.replace(/[\[\]]/g,'').split(',').map(function(t){return t.trim().replace(/["']/g,'')}).filter(Boolean);
+    }else if(k==='pinned'){m.pinned=v==='true'||v==='1'||v==='yes'
+    }else{m[k]=v}
+  });
+  return m;
+}
+
+function buildFront(meta){
+  var lines=['---'];['title','date','summary'].forEach(function(k){if(meta[k])lines.push(k+': "'+meta[k]+'"')});
+  if(meta.tags&&meta.tags.length)lines.push('tags: ['+meta.tags.join(', ')+']');
+  if(meta.pinned)lines.push('pinned: true');
+  lines.push('---');
+  return lines.join('\n');
+}
+
+function updateTags(){
+  var s=new Set();posts.forEach(function(p){p.tags.forEach(function(t){s.add(t)})});
+  globalTags=Array.from(s).sort();
+}
+
+function showLogin(){
+  el('#app').innerHTML='<div class="login-panel"><h2>🔐 登录后台</h2><p>请输入 GitHub 个人访问令牌 (PAT)</p><input type="password" id="tokenInput" placeholder="ghp_xxxxxxxxxxxx" value="'+(token?token:'')+'"><button class="btn-primary" style="width:100%" onclick="window._doLogin()">验证并登录</button><p class="hint">Token 仅在本地存储，不会上传到任何第三方服务器。<br>需要 <code>repo</code> 权限。没有 Token？<a href="https://github.com/settings/tokens" target="_blank">前往创建</a></p></div>';
+}
+
+window._doLogin=function(){
+  var t=el('#tokenInput').value.trim();
+  if(!t.startsWith('ghp_')&&!t.startsWith('github_pat_')){toast('Token 格式不正确，应以 ghp_ 或 github_pat_ 开头','error');return}
+  token=t;localStorage.setItem('blog_token',token);
+  toast('正在验证...');gh('contents/'+POSTS_PATH+'?ref='+BRANCH).then(function(r){
+    if(r.ok){toast('验证成功！','success');renderApp()}else{toast('验证失败: '+r.status,'error');token='';localStorage.removeItem('blog_token');showLogin()}
+  }).catch(function(e){toast('网络错误: '+e.message,'error')})
+};
+
+function renderApp(){
+  if(!token){showLogin();return}
+  el('#app').innerHTML='<header><h1>⚙️ 管理后台</h1><div class="actions"><button class="btn-ghost" onclick="window._editAbout()">👤 编辑个人主页</button><button class="btn-primary" onclick="window._newPost()">✏️ 新建文章</button><button class="btn-ghost" onclick="window._logout()">退出</button></div></header><div id="draft-banner">📝 检测到未保存的草稿 <button class="btn-ghost" onclick="window._restoreDraft()">恢复</button><button class="btn-ghost" onclick="window._discardDraft()">丢弃</button></div><div id="postList" class="post-list"><div class="loading"></div></div>';
+  fetchPosts().then(renderList);
+  checkDraft();
+  checkHash();
+}
+
+function renderList(){
+  var c=el('#postList');if(!c)return;
+  if(!posts.length){c.innerHTML='<div class="post-empty"><div class="icon">📭</div><p>还没有文章，点击「✏️ 新建文章」开始吧</p></div>';return}
+  c.innerHTML=posts.map(function(p){
+    return '<div class="post-card'+(p.pinned?' pinned':'')+'" onclick="window._editPost(\''+p.name+'\')"><div class="post-info"><h3>'+(p.pinned?'📌 ':'')+h(p.title)+'</h3><div class="post-meta">'+h(p.date)+' '+p.tags.map(function(t){return '<span class="tag">'+h(t)+'</span>'}).join('')+'</div></div><div class="post-actions"><button class="btn-ghost" onclick="event.stopPropagation();window._editPost(\''+p.name+'\')">编辑</button><button class="btn-danger" onclick="event.stopPropagation();window._deletePost(\''+p.name+'\')">删除</button></div></div>';
+  }).join('');
+}
+
+function h(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+function openEditor(meta){
+  editingFile=meta.file;editingSha=meta.sha;
+  var isAbout=meta.isAbout||false;
+  var ov=elc('div');ov.className='editor-overlay';ov.id='editorOverlay';
+  ov.innerHTML='<div class="editor-header"><input class="title-input" id="edTitle" placeholder="文章标题" value="'+h(meta.title||'')+'">'+
+    (isAbout?'':'<div class="editor-meta"><input id="edDate" type="date" value="'+h(meta.date||'')+'"><input id="edTags" placeholder="标签,逗号分隔" value="'+h((meta.tags||[]).join(', '))+'"><label><input type="checkbox" id="edPinned" '+(meta.pinned?'checked':'')+'> 📌 置顶</label></div>')+
+    (isAbout?'':'<input id="edSummary" placeholder="摘要" value="'+h(meta.summary||'')+'" style="flex:1;min-width:150px">')+
+    '<button class="btn-primary" onclick="window._save()">💾 保存</button>'+
+    '<button class="btn-ghost" onclick="window._togglePreview()">👁 预览</button>'+
+    '<button class="btn-ghost" onclick="window._closeEditor()">✕</button></div>'+
+    '<div class="editor-body"><div class="editor-pane" id="editPane"><textarea id="edBody" placeholder="Markdown 正文...">'+h(meta.body||'')+'</textarea></div>'+
+    '<div class="editor-pane preview-pane" id="previewPane"><div class="preview-content" id="previewContent"></div></div></div>'+
+    '<div class="editor-footer"><span>'+h(editingFile||'')+'</span><span><span class="shortcut"><kbd>Ctrl+S</kbd> 保存</span><span class="shortcut"><kbd>Ctrl+P</kbd> 预览</span><span class="shortcut"><kbd>Esc</kbd> 关闭</span></span></div>';
+  document.body.appendChild(ov);
+  el('#edBody').focus();
+  if(meta.body)updatePreview();
+  el('#edBody').addEventListener('input',function(){updatePreview();startDraft()});
+  el('#edTitle').addEventListener('input',startDraft);
+  document.addEventListener('keydown',onKey);
+  startDraft();
+}
+
+window._newPost=function(){
+  var today=new Date().toISOString().slice(0,10);
+  openEditor({file:null,sha:null,title:'',date:today,tags:[],summary:'',body:'',pinned:false,isAbout:false});
+};
+
+window._editPost=function(name){
+  var p=posts.find(function(x){return x.name===name});if(!p)return;
+  var body=p.raw;var idx=body.indexOf('---',3);if(idx!==-1)body=body.substring(idx+3).trim();
+  openEditor({file:p.path,sha:p.sha,title:p.title,date:p.date,tags:p.tags,summary:p.summary,body:body,pinned:p.pinned,isAbout:false});
+};
+
+window._editAbout=function(){
+  var aboutFile='pages/about.md';
+  gh('contents/'+aboutFile+'?ref='+BRANCH).then(function(r){
+    if(!r.ok){toast('加载个人主页失败','error');return}
+    return r.json();
+  }).then(function(j){
+    openEditor({file:aboutFile,sha:j.sha,title:'关于我',body:db64(j.content),isAbout:true,pinned:false,date:'',tags:[],summary:''});
+  }).catch(function(e){toast('加载失败: '+e.message,'error')});
+};
+
+window._deletePost=function(name){
+  var p=posts.find(function(x){return x.name===name});if(!p)return;
+  if(!confirm('确定删除「'+p.title+'」？此操作不可撤销。'))return;
+  gh('contents/'+p.path,{method:'DELETE',body:JSON.stringify({message:'Delete '+name,sha:p.sha,branch:BRANCH})}).then(function(r){
+    if(r.ok){toast('已删除: '+p.title,'success');fetchPosts().then(renderList)}else{toast('删除失败: '+r.status,'error')}
+  }).catch(function(e){toast('错误: '+e.message,'error')});
+};
+
+window._save=async function(){
+  var title=el('#edTitle').value.trim();if(!title){toast('请输入标题','error');return}
+  var isAbout=editingFile&&editingFile.startsWith('pages/');
+  var meta={title:title,date:isAbout?'':(el('#edDate')?el('#edDate').value:''),summary:isAbout?'':(el('#edSummary')?el('#edSummary').value.trim():''),tags:isAbout?[]:(el('#edTags')?el('#edTags').value.split(',').map(function(t){return t.trim()}).filter(Boolean):[]),pinned:isAbout?false:(el('#edPinned')?el('#edPinned').checked:false)};
+  var body=el('#edBody').value||'';
+  var content=isAbout?body:(buildFront(meta)+'\n\n'+body);
+  var filePath=editingFile||(POSTS_PATH+slug(title)+'.md');
+  var payload={message:(editingFile?'Update ':'Create ')+filePath.replace(POSTS_PATH,''),content:b64(content),branch:BRANCH};
+  if(editingSha)payload.sha=editingSha;
+  try{
+    var r=await gh('contents/'+filePath,{method:'PUT',body:JSON.stringify(payload)});
+    if(!r.ok){var e=await r.json();throw new Error(e.message||r.status)}
+    var j=await r.json();
+    editingFile=filePath;editingSha=j.content.sha;
+    clearDraft();
+    toast(isAbout?'个人主页已保存！':'文章已保存！','success');
+    fetchPosts().then(renderList);
+  }catch(e){toast('保存失败: '+e.message,'error')}
+};
+
+window._togglePreview=function(){
+  var pp=el('#previewPane');if(pp)pp.classList.toggle('show');
+  updatePreview();
+};
+function updatePreview(){
+  var pc=el('#previewContent'),body=el('#edBody');if(!pc||!body)return;
+  if(typeof marked!=='undefined'){marked.setOptions({breaks:true,gfm:true});pc.innerHTML=marked.parse(body.value||'*暂无内容*')}else{pc.innerHTML='<p>marked.js 加载中...</p>'}
+}
+
+window._closeEditor=function(){clearDraft();var ov=el('#editorOverlay');if(ov)ov.remove();document.removeEventListener('keydown',onKey);window.location.hash='';editingFile=null;editingSha=null};
+
+function onKey(e){
+  if(e.ctrlKey&&e.key==='s'){e.preventDefault();window._save()}
+  if(e.ctrlKey&&e.key==='p'){e.preventDefault();window._togglePreview()}
+  if(e.key==='Escape'&&!e.target.closest('input,textarea')){e.preventDefault();window._closeEditor()}
+}
+
+function startDraft(){clearTimeout(draftTimer);draftTimer=setTimeout(saveDraft,30000)}
+function saveDraft(){
+  var t=el('#edTitle'),b=el('#edBody'),d=el('#edDate'),g=el('#edTags'),s=el('#edSummary'),p=el('#edPinned');
+  if(!t||!b)return;
+  var draft={title:t.value,body:b.value,date:d?d.value:'',tags:g?g.value:'',summary:s?s.value:'',pinned:p?p.checked:false,file:editingFile,sha:editingSha,isAbout:editingFile&&editingFile.startsWith('pages/'),ts:Date.now()};
+  localStorage.setItem('blog_draft',JSON.stringify(draft));
+}
+function clearDraft(){clearTimeout(draftTimer);localStorage.removeItem('blog_draft')}
+function checkDraft(){
+  var raw=localStorage.getItem('blog_draft');if(!raw)return;
+  var d;try{d=JSON.parse(raw)}catch(e){return}
+  if(!d||!d.ts)return;
+  var b=el('#draft-banner');if(b)b.style.display='flex';
+}
+window._restoreDraft=function(){
+  var raw=localStorage.getItem('blog_draft');if(!raw)return;
+  var d;try{d=JSON.parse(raw)}catch(e){return}
+  if(!d)return;
+  editingFile=d.file||null;editingSha=d.sha||null;
+  openEditor({file:d.file,sha:d.sha,title:d.title,date:d.date,tags:d.tags?d.tags.split(',').map(function(t){return t.trim()}).filter(Boolean):[],summary:d.summary||'',body:d.body,pinned:d.pinned||false,isAbout:d.isAbout||false});
+};
+window._discardDraft=function(){clearDraft();var b=el('#draft-banner');if(b)b.style.display='none'};
+window._logout=function(){clearDraft();token='';localStorage.removeItem('blog_token');showLogin();window.location.hash=''};
+
+function checkHash(){
+  var h=window.location.hash;if(!h)return;
+  var m=h.match(/^#edit=(.+)/);if(!m)return;
+  var slug=m[1];
+  setTimeout(function(){
+    var p=posts.find(function(x){return x.name.replace('.md','')===slug||x.title===slug||slug(x.title)===slug});
+    if(p)window._editPost(p.name);
+  },500);
+}
+
+window.addEventListener('hashchange',function(){if(!el('#editorOverlay'))checkHash()});
+
+renderApp();
+})();
+</script>
+</body>
+</html>
