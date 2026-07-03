@@ -159,44 +159,68 @@ def load_posts(config: dict) -> list[dict]:
 
 # ── Starfield CSS ───────────────────────────────────────────────────────────
 def generate_starfield_css(seed: int = 42) -> str:
-    """Generate deterministic starfield CSS with box-shadow."""
+    """Generate deterministic starfield CSS: 60 small + 20 medium stars + 2 shooting stars."""
     rng = random.Random(seed)
     stars_small = []
     stars_med = []
-    for _ in range(40):
+    for _ in range(60):
         x = round(rng.uniform(0, 100), 1)
         y = round(rng.uniform(0, 100), 1)
-        opacity = round(rng.uniform(0.3, 0.9), 2)
-        stars_small.append(f"{x}vw {y}vh 0 {rng.uniform(0.3,0.7):.2f}px rgba(255,255,255,{opacity})")
-    for _ in range(12):
+        opacity = round(rng.uniform(0.3, 0.7), 2)
+        stars_small.append(f"{x}vw {y}vh 0 {rng.uniform(0.3,0.6):.2f}px rgba(255,255,255,{opacity})")
+    for _ in range(20):
         x = round(rng.uniform(0, 100), 1)
         y = round(rng.uniform(0, 100), 1)
-        opacity = round(rng.uniform(0.4, 1.0), 2)
-        stars_med.append(f"{x}vw {y}vh 0 {rng.uniform(0.7,1.2):.2f}px rgba(180,200,255,{opacity})")
+        opacity = round(rng.uniform(0.25, 0.65), 2)
+        stars_med.append(f"{x}vw {y}vh 0 {rng.uniform(0.6,1.0):.2f}px rgba(200,210,255,{opacity})")
     return f"""
-/* Auto-generated starfield */
+/* Auto-generated starfield + shooting stars */
 .stars-small{{
   position:fixed;inset:0;z-index:0;pointer-events:none;
   box-shadow:{','.join(stars_small)};
-  animation:twinkle-small 5s infinite alternate;
+  animation:twinkle-small 4s ease-in-out infinite alternate;
 }}
 .stars-medium{{
   position:fixed;inset:0;z-index:0;pointer-events:none;
   box-shadow:{','.join(stars_med)};
-  animation:twinkle-med 8s infinite alternate-reverse;
+  animation:twinkle-med 6s ease-in-out infinite alternate-reverse;
 }}
 @keyframes twinkle-small{{
-  0%{{opacity:0.6}} 50%{{opacity:0.9}} 100%{{opacity:0.7}}
+  0%{{opacity:0.5}}50%{{opacity:0.85}}100%{{opacity:0.6}}
 }}
 @keyframes twinkle-med{{
-  0%{{opacity:0.5}} 60%{{opacity:1}} 100%{{opacity:0.6}}
+  0%{{opacity:0.4}}30%{{opacity:0.75}}70%{{opacity:0.5}}100%{{opacity:0.7}}
 }}
+
+/* Shooting stars */
+.shooting-star{{
+  position:fixed;z-index:1;pointer-events:none;
+  width:120px;height:0.5px;
+  background:linear-gradient(to right,transparent,rgba(255,255,255,0.5),transparent);
+  animation:shoot1 20s linear infinite;
+  top:15vh;right:-120px;transform:rotate(-20deg);
+}}
+.shooting-star:nth-child(2){{
+  top:30vh;animation-name:shoot2;animation-duration:27s;animation-delay:8s;
+  transform:rotate(-15deg);
+}}
+@keyframes shoot1{{
+  0%{{right:-120px;top:15vh;opacity:0}}
+  3%{{opacity:0.7}}
+  7%{{right:110vw;top:70vh;opacity:0}}
+  100%{{right:110vw;top:70vh;opacity:0}}
+}}
+@keyframes shoot2{{
+  0%{{right:-120px;top:30vh;opacity:0}}
+  2%{{opacity:0.6}}
+  6%{{right:110vw;top:75vh;opacity:0}}
+  100%{{right:110vw;top:75vh;opacity:0}}
+}}
+
 @media(prefers-reduced-motion:reduce){{
-  .stars-small,.stars-medium{{animation:none}}
+  .stars-small,.stars-medium,.shooting-star{{animation:none}}
 }}
 """
-
-# ── Page rendering ──────────────────────────────────────────────────────────
 def render_page(config: dict, title: str, body: str, extra_head: str = "",
                 og_title: str = None, og_desc: str = None, og_url: str = None,
                 og_type: str = "website", ld_json: str = None,
@@ -243,6 +267,8 @@ def render_page(config: dict, title: str, body: str, extra_head: str = "",
 <body>
     <div class="stars-small"></div>
     <div class="stars-medium"></div>
+    <div class="shooting-star"></div>
+    <div class="shooting-star"></div>
     <div class="sunset-glow"></div>
     <header class="site-header">
         <div class="container">
@@ -279,20 +305,24 @@ def build_homepage(posts: list[dict], config: dict):
         <h1 class="hero-name">{escape_html(config['author']['name'])}</h1>
         <p class="hero-tagline">{escape_html(config['site']['tagline'])}</p>
         <div class="hero-divider"></div>
-        <p class="hero-bio">{escape_html(config['author']['bio'])}</p>
-        <div class="hero-links">
+    </section>
+
+    <div class="module-card personal-card">
+        <a href="/about.html" class="personal-avatar">{config['author']['avatar']}</a>
+        <p class="personal-bio">{escape_html(config['author']['bio'])}</p>
+        <div class="personal-links">
             {''.join(f'<a href="{s["url"]}" target="_blank" rel="noopener">{s["platform"]}</a>' for s in config.get("social", []))}
         </div>
-    </section>"""
+    </div>"""
 
     # Tag cloud
     tag_counts = {}
     for p in posts:
         for t in p["tags"]:
             tag_counts[t] = tag_counts.get(t, 0) + 1
-    tag_buttons = '<button class="tag-btn active" data-tag="all">全部</button>'
+    tag_buttons = '<button class="tag-btn active" data-tag="_all">全部</button>'
     for t, c in sorted(tag_counts.items()):
-        tag_buttons += f'\n                    <button class="tag-btn" data-tag="{escape_html(t)}">{escape_html(t)}({c})</button>'
+        tag_buttons += f'\n                    <button class="tag-btn" data-tag="{escape_html(t)}">{escape_html(t)}<span class="tag-count">{c}</span></button>'
 
     # Post cards
     if not posts:
@@ -304,27 +334,24 @@ def build_homepage(posts: list[dict], config: dict):
             pin_mark = ' <span class="pin-badge">置顶</span>' if p.get("pinned") else ""
             cards += f"""
         <a href="/post/{p['slug']}.html" class="post-card-link" data-tags="{','.join(t for t in p['tags'])}">
-            <article class="post-card">
+            <article class="module-card post-card">
                 <h2 class="post-card-title">{escape_html(p['title'])}{pin_mark}</h2>
                 <div class="post-card-meta">
                     <time datetime="{p['date']}">{p['date']}</time>
-                    <span>· 约 {p['reading_time']} 分钟</span>
+                    <span>· {p['reading_time']} 分钟</span>
                     <span class="post-card-tags">{tags_html}</span>
                 </div>
-                <p class="post-card-excerpt">{escape_html(p.get('excerpt', ''))}</p>
             </article>
         </a>"""
 
     body = hero + f"""
-    <section class="search-section">
-        <div class="search-box">
-            <input type="text" id="searchInput" placeholder="搜索文章..." autocomplete="off">
-            <button id="searchClear" class="search-clear" style="display:none" aria-label="清除搜索">✕</button>
-        </div>
-        <div class="tag-cloud" id="tagCloud">
-            {tag_buttons}
-        </div>
-    </section>
+    <div class="module-card search-card">
+        <input type="text" id="searchInput" placeholder="搜索文章..." autocomplete="off">
+    </div>
+
+    <div class="tag-cloud" id="tagCloud">
+        {tag_buttons}
+    </div>
 
     <section class="posts-section">
         <h2 class="section-title">文章</h2>
