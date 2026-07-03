@@ -1,26 +1,26 @@
 {
   "site": {
-    "name": "残影丶浪",
-    "tagline": "记录学习、技术与生活",
-    "description": "残影丶浪的个人博客 —— 写作是最好的思考方式。分享技术笔记、学习心得与生活随想。",
-    "url": "https://ybn20060409-cpu.github.io/canyinglang.github.io",
+    "name": "娈嬪奖涓舵氮",
+    "tagline": "璁板綍瀛︿範銆佹妧鏈笌鐢熸椿",
+    "description": "娈嬪奖涓舵氮鐨勪釜浜哄崥瀹?鈥斺€?鍐欎綔鏄渶濂界殑鎬濊€冩柟寮忋€傚垎浜妧鏈瑪璁般€佸涔犲績寰椾笌鐢熸椿闅忔兂銆?,
+    "url": "https://ybn20060409-cpu.github.io",
     "language": "zh-CN",
-    "keywords": "博客,技术,编程,学习,思考",
+    "keywords": "鍗氬,鎶€鏈?缂栫▼,瀛︿範,鎬濊€?,
     "since": 2025
   },
   "author": {
-    "name": "残影丶浪",
-    "avatar": "🌊",
-    "bio": "一个热爱技术的开发者，相信写作是最好的思考方式。",
-    "philosophy": "种一棵树最好的时间是十年前，其次是现在。写作不只是记录，更是与自己对话的过程。在这里，我希望通过文字沉淀思考、分享知识，也期待未来能与更多人一起，用更新奇的方式探索思想的可能性。"
+    "name": "娈嬪奖涓舵氮",
+    "avatar": "馃寠",
+    "bio": "涓€涓儹鐖辨妧鏈殑寮€鍙戣€咃紝鐩镐俊鍐欎綔鏄渶濂界殑鎬濊€冩柟寮忋€?,
+    "philosophy": "绉嶄竴妫垫爲鏈€濂界殑鏃堕棿鏄崄骞村墠锛屽叾娆℃槸鐜板湪銆傚啓浣滀笉鍙槸璁板綍锛屾洿鏄笌鑷繁瀵硅瘽鐨勮繃绋嬨€傚湪杩欓噷锛屾垜甯屾湜閫氳繃鏂囧瓧娌夋穩鎬濊€冦€佸垎浜煡璇嗭紝涔熸湡寰呮湭鏉ヨ兘涓庢洿澶氫汉涓€璧凤紝鐢ㄦ洿鏂板鐨勬柟寮忔帰绱㈡€濇兂鐨勫彲鑳芥€с€?
   },
   "nav": [
-    { "label": "首页", "href": "/" },
-    { "label": "关于", "href": "/about.html" }
+    { "label": "棣栭〉", "href": "/" },
+    { "label": "鍏充簬", "href": "/about.html" }
   ],
   "social": [
     { "platform": "GitHub", "url": "https://github.com/ybn20060409-cpu", "icon": "github" },
-    { "platform": "邮箱", "url": "mailto:ybn20060409@163.com", "icon": "email" }
+    { "platform": "閭", "url": "mailto:ybn20060409@163.com", "icon": "email" }
   ],
-  "footer": "© 2025–2026 残影丶浪 · 由 GitHub Pages 驱动"
+  "footer": "漏 2025鈥?026 娈嬪奖涓舵氮 路 鐢?GitHub Pages 椹卞姩"
 }
