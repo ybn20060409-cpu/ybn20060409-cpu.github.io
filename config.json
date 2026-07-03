@@ -3,7 +3,7 @@
     "name": "残影丶浪",
     "tagline": "记录学习、技术与生活",
     "description": "残影丶浪的个人博客 —— 写作是最好的思考方式。分享技术笔记、学习心得与生活随想。",
-    "url": "https://ybn20060409.github.io",
+    "url": "https://ybn20060409-cpu.github.io/canyinglang.github.io",
     "language": "zh-CN",
     "keywords": "博客,技术,编程,学习,思考",
     "since": 2025
@@ -19,7 +19,7 @@
     { "label": "关于", "href": "/about.html" }
   ],
   "social": [
-    { "platform": "GitHub", "url": "https://github.com/ybn20060409", "icon": "github" },
+    { "platform": "GitHub", "url": "https://github.com/ybn20060409-cpu", "icon": "github" },
     { "platform": "邮箱", "url": "mailto:ybn20060409@163.com", "icon": "email" }
   ],
   "footer": "© 2025–2026 残影丶浪 · 由 GitHub Pages 驱动"
