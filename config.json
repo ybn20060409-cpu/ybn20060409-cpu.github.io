@@ -1,26 +1,28 @@
 {
   "site": {
-    "name": "残影丶浪",
-    "tagline": "记录学习、技术与生活",
-    "description": "残影丶浪的个人博客 —— 写作是最好的思考方式。分享技术笔记、学习心得与生活随想。",
+    "name": "朝暮集",
+    "tagline": "朝有所思，暮有所记",
+    "description": "朝暮集 —— 文章与诗歌的个人收藏。记录学习、技术与生活中的每一个值得铭记的瞬间。",
     "url": "https://ybn20060409-cpu.github.io",
     "language": "zh-CN",
-    "keywords": "博客,技术,编程,学习,思考",
+    "keywords": "博客,诗歌,技术,编程,文学,朝暮集",
     "since": 2025
   },
   "author": {
     "name": "残影丶浪",
     "avatar": "🌊",
-    "bio": "一个热爱技术的开发者，相信写作是最好的思考方式。",
-    "philosophy": "种一棵树最好的时间是十年前，其次是现在。写作不只是记录，更是与自己对话的过程。在这里，我希望通过文字沉淀思考、分享知识，也期待未来能与更多人一起，用更新奇的方式探索思想的可能性。"
+    "bio": "朝有所思，暮有所记。一个热爱技术与文学的人。",
+    "philosophy": "种一棵树最好的时间是十年前，其次是现在。写作不只是记录，更是与自己对话的过程。"
   },
   "nav": [
     { "label": "首页", "href": "/" },
+    { "label": "文章", "href": "/articles/" },
+    { "label": "诗歌", "href": "/poetry/" },
     { "label": "关于", "href": "/about.html" }
   ],
   "social": [
     { "platform": "GitHub", "url": "https://github.com/ybn20060409-cpu", "icon": "github" },
     { "platform": "邮箱", "url": "mailto:ybn20060409@163.com", "icon": "email" }
   ],
-  "footer": "© 2025–2026 残影丶浪 · 由 GitHub Pages 驱动"
+  "footer": "© 2025–2026 朝暮集 · 由 GitHub Pages 驱动"
 }

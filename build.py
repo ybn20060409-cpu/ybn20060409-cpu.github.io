@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """
-blog-v2 Static Site Builder — v3
+blog-v2 Static Site Builder — v4
 =================================
-Reads Markdown posts + pages, generates a feature-rich static blog.
-Features: TOC, reading time, OG tags, structured data, sitemap,
-          tag cloud, search index, starfield background, 404 page.
+朝暮集 — 文章与诗歌双内容静态站点生成器。
+Features: 全新首页 (搜索+标签云+封面卡片入口), 文章/诗歌封面卡片列表,
+          分区卡片化关于页, 增强星空 (80颗小星星+30颗中星星+3颗流星),
+          TOC, reading time, OG tags, structured data, sitemap, RSS.
 Usage: python build.py
 """
 
-import json, shutil, sys, io, re, random
+import json, shutil, sys, io, re, random, hashlib
 from datetime import date, datetime, timezone
 from pathlib import Path
 from email.utils import format_datetime
@@ -17,10 +18,14 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
 ROOT = Path(__file__).resolve().parent
 POSTS_DIR = ROOT / "posts"
+POEMS_DIR = ROOT / "poems"
 PAGES_DIR = ROOT / "pages"
 SRC_DIR = ROOT / "src"
 OUT_DIR = ROOT / "public"
 OUT_POSTS_DIR = OUT_DIR / "post"
+OUT_POEMS_DIR = OUT_DIR / "poem"
+OUT_ARTICLES_DIR = OUT_DIR / "articles"
+OUT_POETRY_DIR = OUT_DIR / "poetry"
 
 # ── Dependencies ────────────────────────────────────────────────────────────
 def _ensure_markdown():
@@ -115,66 +120,74 @@ def add_heading_ids(html: str) -> str:
 def escape_html(s: str) -> str:
     return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
-# ── Posts loading ───────────────────────────────────────────────────────────
-def load_posts(config: dict) -> list[dict]:
-    posts = []
+# ── Cover Gradients ─────────────────────────────────────────────────────────
+def generate_cover_gradient(title, index=0):
+    h = int(hashlib.md5(title.encode()).hexdigest()[:6], 16)
+    hue1 = h % 360; hue2 = (h // 7) % 360
+    return f'background:linear-gradient(135deg,hsl({hue1},60%,35%),hsl({hue2},50%,25%));'
+
+def generate_poem_cover_gradient(title, index=0):
+    h = int(hashlib.md5(title.encode()).hexdigest()[:6], 16)
+    hue1 = (h % 180) + 10; hue2 = ((h // 7) % 180) + 20
+    return f'background:linear-gradient(135deg,hsl({hue1},55%,38%),hsl({hue2},48%,28%));'
+
+# ── Content Loading ─────────────────────────────────────────────────────────
+def load_content(config):
+    posts = []; poems = []
     for md_file in sorted(POSTS_DIR.glob("*.md"), reverse=True):
         raw = md_file.read_text(encoding="utf-8")
         meta, body_md = parse_frontmatter(raw)
-        meta.setdefault("title", md_file.stem)
-        meta.setdefault("date", str(date.today()))
-        meta.setdefault("tags", [])
-        meta.setdefault("excerpt", "")
-        meta.setdefault("draft", False)
-        meta.setdefault("pinned", False)
-        if isinstance(meta["draft"], str):
-            meta["draft"] = meta["draft"].lower() in ("true", "yes", "1")
-        if isinstance(meta["pinned"], str):
-            meta["pinned"] = meta["pinned"].lower() in ("true", "yes", "1")
-        if isinstance(meta["tags"], str):
-            meta["tags"] = [meta["tags"]]
-        if meta["draft"]:
-            continue
+        meta.setdefault("title",md_file.stem); meta.setdefault("date",str(date.today()))
+        meta.setdefault("tags",[]); meta.setdefault("excerpt","")
+        meta.setdefault("draft",False); meta.setdefault("pinned",False)
+        if isinstance(meta["draft"],str): meta["draft"] = meta["draft"].lower() in ("true","yes","1")
+        if isinstance(meta["pinned"],str): meta["pinned"] = meta["pinned"].lower() in ("true","yes","1")
+        if isinstance(meta["tags"],str): meta["tags"] = [meta["tags"]]
+        if meta["draft"]: continue
         slug = md_file.stem
-        html_body = md_to_html(body_md)
-        html_body = add_heading_ids(html_body)
+        html_body = add_heading_ids(md_to_html(body_md))
         headings = extract_headings(html_body)
-        posts.append({
-            "title": meta["title"],
-            "date": meta["date"],
-            "tags": meta["tags"],
-            "excerpt": meta["excerpt"],
-            "slug": slug,
-            "html_body": html_body,
-            "raw_body": body_md,
-            "headings": headings,
-            "reading_time": reading_time(body_md),
-            "word_count": word_count(body_md),
-            "pinned": meta["pinned"],
-        })
-    # Sort: pinned first, then by date
-    posts.sort(key=lambda p: (not p["pinned"], p["date"]), reverse=False)
-    posts.sort(key=lambda p: p["pinned"], reverse=True)
-    return posts
+        posts.append(dict(title=meta["title"],date=meta["date"],tags=meta["tags"],
+            excerpt=meta["excerpt"],slug=slug,html_body=html_body,raw_body=body_md,
+            headings=headings,reading_time=reading_time(body_md),
+            word_count=word_count(body_md),pinned=meta["pinned"]))
+    posts.sort(key=lambda p:(not p["pinned"],p["date"]),reverse=False)
+    posts.sort(key=lambda p:p["pinned"],reverse=True)
+
+    for md_file in sorted(POEMS_DIR.glob("*.md"), reverse=True):
+        raw = md_file.read_text(encoding="utf-8")
+        meta, body_md = parse_frontmatter(raw)
+        meta.setdefault("title",md_file.stem); meta.setdefault("date",str(date.today()))
+        meta.setdefault("tags",[]); meta.setdefault("excerpt","")
+        meta.setdefault("draft",False)
+        if isinstance(meta["draft"],str): meta["draft"] = meta["draft"].lower() in ("true","yes","1")
+        if isinstance(meta["tags"],str): meta["tags"] = [meta["tags"]]
+        if meta["draft"]: continue
+        slug = md_file.stem
+        html_body = add_heading_ids(md_to_html(body_md))
+        headings = extract_headings(html_body)
+        poems.append(dict(title=meta["title"],date=meta["date"],tags=meta["tags"],
+            excerpt=meta["excerpt"],slug=slug,html_body=html_body,raw_body=body_md,
+            headings=headings,reading_time=reading_time(body_md),
+            word_count=word_count(body_md)))
+    poems.sort(key=lambda p:p["date"],reverse=True)
+    return posts, poems
 
 # ── Starfield CSS ───────────────────────────────────────────────────────────
-def generate_starfield_css(seed: int = 42) -> str:
-    """Generate deterministic starfield CSS: 60 small + 20 medium stars + 2 shooting stars."""
+def generate_starfield_css(seed=42):
+    """Generate starfield CSS: 80 small + 30 medium stars + 3 shooting stars."""
     rng = random.Random(seed)
-    stars_small = []
-    stars_med = []
-    for _ in range(60):
-        x = round(rng.uniform(0, 100), 1)
-        y = round(rng.uniform(0, 100), 1)
-        opacity = round(rng.uniform(0.3, 0.7), 2)
+    stars_small = []; stars_med = []
+    for _ in range(80):
+        x = round(rng.uniform(0,100),1); y = round(rng.uniform(0,100),1)
+        opacity = round(rng.uniform(0.5,0.9),2)
         stars_small.append(f"{x}vw {y}vh 0 {rng.uniform(0.3,0.6):.2f}px rgba(255,255,255,{opacity})")
-    for _ in range(20):
-        x = round(rng.uniform(0, 100), 1)
-        y = round(rng.uniform(0, 100), 1)
-        opacity = round(rng.uniform(0.25, 0.65), 2)
+    for _ in range(30):
+        x = round(rng.uniform(0,100),1); y = round(rng.uniform(0,100),1)
+        opacity = round(rng.uniform(0.5,0.9),2)
         stars_med.append(f"{x}vw {y}vh 0 {rng.uniform(0.6,1.0):.2f}px rgba(200,210,255,{opacity})")
     return f"""
-/* Auto-generated starfield + shooting stars */
+/* Auto-generated starfield */
 .stars-small{{
   position:fixed;inset:0;z-index:0;pointer-events:none;
   box-shadow:{','.join(stars_small)};
@@ -185,12 +198,8 @@ def generate_starfield_css(seed: int = 42) -> str:
   box-shadow:{','.join(stars_med)};
   animation:twinkle-med 6s ease-in-out infinite alternate-reverse;
 }}
-@keyframes twinkle-small{{
-  0%{{opacity:0.5}}50%{{opacity:0.85}}100%{{opacity:0.6}}
-}}
-@keyframes twinkle-med{{
-  0%{{opacity:0.4}}30%{{opacity:0.75}}70%{{opacity:0.5}}100%{{opacity:0.7}}
-}}
+@keyframes twinkle-small{{0%{{opacity:0.5}}50%{{opacity:0.85}}100%{{opacity:0.6}}}}
+@keyframes twinkle-med{{0%{{opacity:0.4}}30%{{opacity:0.75}}70%{{opacity:0.5}}100%{{opacity:0.7}}}}
 
 /* Shooting stars */
 .shooting-star{{
@@ -204,6 +213,10 @@ def generate_starfield_css(seed: int = 42) -> str:
   top:30vh;animation-name:shoot2;animation-duration:27s;animation-delay:8s;
   transform:rotate(-15deg);
 }}
+.shooting-star:nth-child(3){{
+  top:55vh;animation-name:shoot3;animation-duration:23s;animation-delay:15s;
+  transform:rotate(-25deg);
+}}
 @keyframes shoot1{{
   0%{{right:-120px;top:15vh;opacity:0}}
   3%{{opacity:0.7}}
@@ -215,6 +228,12 @@ def generate_starfield_css(seed: int = 42) -> str:
   2%{{opacity:0.6}}
   6%{{right:110vw;top:75vh;opacity:0}}
   100%{{right:110vw;top:75vh;opacity:0}}
+}}
+@keyframes shoot3{{
+  0%{{right:-120px;top:55vh;opacity:0}}
+  4%{{opacity:0.5}}
+  8%{{right:110vw;top:85vh;opacity:0}}
+  100%{{right:110vw;top:85vh;opacity:0}}
 }}
 
 @media(prefers-reduced-motion:reduce){{
@@ -269,10 +288,11 @@ def render_page(config: dict, title: str, body: str, extra_head: str = "",
     <div class="stars-medium"></div>
     <div class="shooting-star"></div>
     <div class="shooting-star"></div>
+    <div class="shooting-star"></div>
     <div class="sunset-glow"></div>
     <header class="site-header">
         <div class="container">
-            <a href="/about.html" class="logo" title="个人主页">{config['author']['avatar']} {escape_html(config['site']['name'])}</a>
+            <a href="/" class="logo" title="朝暮集">{config['author']['avatar']} {escape_html(config['site']['name'])}</a>
             <button class="nav-toggle" aria-label="菜单" id="navToggle">☰</button>
             <nav id="siteNav">
 {nav}
@@ -298,73 +318,110 @@ def render_page(config: dict, title: str, body: str, extra_head: str = "",
 
 # ── Page builders ───────────────────────────────────────────────────────────
 
-def build_homepage(posts: list[dict], config: dict):
-    """Generate index.html with hero, search, tag cloud, and post cards."""
-    hero = f"""
-    <section class="hero">
-        <h1 class="hero-name">{escape_html(config['author']['name'])}</h1>
-        <p class="hero-tagline">{escape_html(config['site']['tagline'])}</p>
-        <div class="hero-divider"></div>
-    </section>
-
-    <div class="module-card personal-card">
-        <a href="/about.html" class="personal-avatar">{config['author']['avatar']}</a>
-        <p class="personal-bio">{escape_html(config['author']['bio'])}</p>
-        <div class="personal-links">
-            {''.join(f'<a href="{s["url"]}" target="_blank" rel="noopener">{s["platform"]}</a>' for s in config.get("social", []))}
-        </div>
-    </div>"""
-
-    # Tag cloud
+def build_homepage(posts, poems, config):
+    """全新首页: 搜索+标签云 + 超大标题朝暮集 + 文章/诗歌悬浮卡片入口"""
+    # Tag cloud from posts + poems
     tag_counts = {}
-    for p in posts:
-        for t in p["tags"]:
-            tag_counts[t] = tag_counts.get(t, 0) + 1
-    tag_buttons = '<button class="tag-btn active" data-tag="_all">全部</button>'
+    for p in posts + poems:
+        for t in p.get("tags",[]):
+            tag_counts[t] = tag_counts.get(t,0) + 1
+    tag_btns = '<button class="tag-btn active" data-tag="_all">全部</button>'
     for t, c in sorted(tag_counts.items()):
-        tag_buttons += f'\n                    <button class="tag-btn" data-tag="{escape_html(t)}">{escape_html(t)}<span class="tag-count">{c}</span></button>'
+        tag_btns += f'\n                    <button class="tag-btn" data-tag="{escape_html(t)}">{escape_html(t)}<span class="tag-count">{c}</span></button>'
 
-    # Post cards
-    if not posts:
-        cards = '<p class="no-posts">还没有文章，敬请期待</p>'
-    else:
-        cards = ""
-        for p in posts:
-            tags_html = " · ".join(f'<span class="tag-link" data-tag="{escape_html(t)}">{escape_html(t)}</span>' for t in p.get("tags", []))
-            pin_mark = ' <span class="pin-badge">置顶</span>' if p.get("pinned") else ""
-            cards += f"""
-        <a href="/post/{p['slug']}.html" class="post-card-link" data-tags="{','.join(t for t in p['tags'])}">
-            <article class="module-card post-card">
-                <h2 class="post-card-title">{escape_html(p['title'])}{pin_mark}</h2>
-                <div class="post-card-meta">
-                    <time datetime="{p['date']}">{p['date']}</time>
-                    <span>· {p['reading_time']} 分钟</span>
-                    <span class="post-card-tags">{tags_html}</span>
-                </div>
-            </article>
-        </a>"""
-
-    body = hero + f"""
-    <div class="module-card search-card">
-        <input type="text" id="searchInput" placeholder="搜索文章..." autocomplete="off">
-    </div>
-
-    <div class="tag-cloud" id="tagCloud">
-        {tag_buttons}
-    </div>
-
-    <section class="posts-section">
-        <h2 class="section-title">文章</h2>
-        <div class="post-list" id="postList">
-            {cards}
+    body = f"""
+    <section class="home-hero">
+        <div class="home-search">
+            <div class="search-bar">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" id="searchInput" placeholder="搜索文章与诗歌..." autocomplete="off">
+            </div>
+            <div class="tag-cloud" id="tagCloud">
+                {tag_btns}
+            </div>
         </div>
-        <p class="no-results" id="noResults" style="display:none">没有找到匹配的文章 😕</p>
+        <h1 class="home-title">朝 暮 集</h1>
+        <div class="home-modules">
+            <a href="/articles/" class="home-module module-posts">
+                <span class="module-icon">&#128218;</span>
+                <span class="module-label">文章</span>
+                <span class="module-count">{len(posts)} 篇</span>
+            </a>
+            <a href="/poetry/" class="home-module module-poems">
+                <span class="module-icon">&#127912;</span>
+                <span class="module-label">诗歌</span>
+                <span class="module-count">{len(poems)} 首</span>
+            </a>
+        </div>
     </section>"""
 
     html = render_page(config, config["site"]["name"], body,
                        og_type="website", include_stars=True)
     (OUT_DIR / "index.html").write_text(html, encoding="utf-8")
     print("   ✅ index.html")
+
+
+def build_articles_list(posts, config):
+    """生成 /articles/index.html — 文章封面卡片列表"""
+    items = ""
+    for i, p in enumerate(posts):
+        grad = generate_cover_gradient(p["title"], i)
+        tags_html = " · ".join(f'<span class="cover-tag">{escape_html(t)}</span>' for t in p.get("tags",[])[:3])
+        items += f"""
+            <a href="/post/{p['slug']}.html" class="cover-card-link">
+                <article class="cover-card" style="{grad}">
+                    <div class="cover-card-inner">
+                        <h2 class="cover-title">{escape_html(p['title'])}</h2>
+                        <div class="cover-meta">
+                            <time datetime="{p['date']}">{p['date']}</time>
+                        </div>
+                        <div class="cover-tags">{tags_html}</div>
+                    </div>
+                </article>
+            </a>"""
+    body = f"""
+    <section class="list-page">
+        <h1 class="list-page-title">文章</h1>
+        <p class="list-page-sub">共 {len(posts)} 篇文章</p>
+        <div class="cover-grid">
+            {items}
+        </div>
+    </section>"""
+    html = render_page(config, "文章", body, og_type="website", include_stars=True)
+    OUT_ARTICLES_DIR.mkdir(parents=True, exist_ok=True)
+    (OUT_ARTICLES_DIR / "index.html").write_text(html, encoding="utf-8")
+    print("   ✅ articles/index.html")
+
+def build_poetry_list(poems, config):
+    """生成 /poetry/index.html — 诗歌封面卡片列表 (暖色调)"""
+    items = ""
+    for i, p in enumerate(poems):
+        grad = generate_poem_cover_gradient(p["title"], i)
+        tags_html = " · ".join(f'<span class="cover-tag">{escape_html(t)}</span>' for t in p.get("tags",[])[:3])
+        items += f"""
+            <a href="/poem/{p['slug']}.html" class="cover-card-link">
+                <article class="cover-card poem-cover" style="{grad}">
+                    <div class="cover-card-inner">
+                        <h2 class="cover-title">{escape_html(p['title'])}</h2>
+                        <div class="cover-meta">
+                            <time datetime="{p['date']}">{p['date']}</time>
+                        </div>
+                        <div class="cover-tags">{tags_html}</div>
+                    </div>
+                </article>
+            </a>"""
+    body = f"""
+    <section class="list-page">
+        <h1 class="list-page-title">诗歌</h1>
+        <p class="list-page-sub">共 {len(poems)} 首诗歌</p>
+        <div class="cover-grid">
+            {items}
+        </div>
+    </section>"""
+    html = render_page(config, "诗歌", body, og_type="website", include_stars=True)
+    OUT_POETRY_DIR.mkdir(parents=True, exist_ok=True)
+    (OUT_POETRY_DIR / "index.html").write_text(html, encoding="utf-8")
+    print("   ✅ poetry/index.html")
 
 
 def build_post_page(post: dict, config: dict):
@@ -441,45 +498,123 @@ def build_post_page(post: dict, config: dict):
     print(f"   ✅ post/{post['slug']}.html")
 
 
-def build_about(config: dict):
-    """Generate about.html (personal homepage)."""
+def build_poem_page(poem, config):
+    """Generate poem detail page, similar to post page."""
+    site_url = config["site"]["url"].rstrip("/")
+    poem_url = f"{site_url}/poem/{poem['slug']}.html"
+
+    # Structured data
+    ld = json.dumps({
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": poem["title"],
+        "datePublished": poem["date"],
+        "author": {"@type": "Person", "name": config["author"]["name"]},
+        "description": poem.get("excerpt", ""),
+        "url": poem_url,
+    }, ensure_ascii=False)
+
+    # TOC sidebar
+    toc_html = ""
+    if poem["headings"] and len(poem["headings"]) >= 2:
+        toc_items = ""
+        for h in poem["headings"]:
+            indent = "toc-indent" if h["level"] == 3 else ""
+            toc_items += f'\n                <li class="toc-item {indent}"><a href="#{h["id"]}">{escape_html(h["text"])}</a></li>'
+        toc_html = f"""
+    <aside class="toc-sidebar" id="tocSidebar">
+        <button class="toc-toggle" id="tocToggle" aria-label="切换目录">📑 目录</button>
+        <nav class="toc-nav" id="tocNav">
+            <ol>{toc_items}
+            </ol>
+        </nav>
+    </aside>"""
+
+    tags_html = "".join(f'<span class="tag">{escape_html(t)}</span>' for t in poem.get("tags", []))
+
+    body = f"""
+    <div class="progress-bar" id="progressBar"></div>
+    <article class="single-post">
+        <header class="post-header">
+            <h1>{escape_html(poem['title'])}</h1>
+            <div class="post-meta">
+                <time datetime="{poem['date']}">{poem['date']}</time>
+                <span>· {poem.get('word_count',0)} 字</span>
+                <div class="post-tags">{tags_html}</div>
+            </div>
+        </header>
+        {toc_html}
+        <div class="post-content" id="postContent">
+            {poem['html_body']}
+        </div>
+        <div class="post-actions">
+            <div class="share-buttons">
+                <button class="share-btn" onclick="copyLink()" title="复制链接">📋 复制链接</button>
+                <button class="share-btn" onclick="shareTo('twitter')" title="分享到 X">🐦</button>
+                <button class="share-btn" onclick="shareTo('weixin')" title="分享到微信">💬</button>
+            </div>
+        </div>
+        <nav class="post-nav">
+            <a href="/poetry/" class="back-home">← 返回诗歌列表</a>
+        </nav>
+    </article>"""
+
+    html = render_page(config, poem["title"], body,
+                       og_title=poem["title"], og_desc=poem.get("excerpt", ""),
+                       og_url=poem_url, og_type="article", ld_json=ld,
+                       include_stars=False)
+    OUT_POEMS_DIR.mkdir(parents=True, exist_ok=True)
+    (OUT_POEMS_DIR / f"{poem['slug']}.html").write_text(html, encoding="utf-8")
+    print(f"   ✅ poem/{poem['slug']}.html")
+
+
+def build_about(config):
+    """分区卡片化关于页: 关于我/我的理念/技术栈/联系方式 四个卡片"""
     about_md = PAGES_DIR / "about.md"
     if about_md.exists():
         raw = about_md.read_text(encoding="utf-8")
         meta, body_md = parse_frontmatter(raw)
-        content = add_heading_ids(md_to_html(body_md))
+        content = md_to_html(body_md)
     else:
-        content = f"""<h2>关于我</h2><p>{escape_html(config['author']['bio'])}</p>
-<h3>我的理念</h3><blockquote>{escape_html(config['author'].get('philosophy', ''))}</blockquote>"""
+        content = f"<p>{escape_html(config['author']['bio'])}</p>"
 
+    philosophy = escape_html(config["author"].get("philosophy",""))
+    tech_stack = config.get("tech_stack",[])
+    tech_html = " · ".join(f'<span class="tech-badge">{escape_html(t)}</span>' for t in tech_stack) if tech_stack else "内容创作、Python、前端开发"
     social_html = "".join(
         f'<a href="{s["url"]}" target="_blank" rel="noopener" class="about-link">{s["platform"]}</a>'
-        for s in config.get("social", [])
-    )
-
-    # Admin edit button
-    admin_edit = '<a href="/admin/#edit=about" class="admin-edit-link" id="adminEditLink" style="display:none">✏️ 编辑个人主页</a>'
+        for s in config.get("social",[]))
 
     body = f"""
     <section class="about-page">
-        <div class="about-header">
-            <div class="about-avatar">{config['author']['avatar']}</div>
-            <h1>{escape_html(config['author']['name'])}</h1>
+        <div class="about-grid">
+            <div class="about-card">
+                <h2>👤 关于我</h2>
+                <div class="about-avatar">{config['author']['avatar']}</div>
+                <h3>{escape_html(config['author']['name'])}</h3>
+                <p>{escape_html(config['author'].get('bio',''))}</p>
+            </div>
+            <div class="about-card">
+                <h2>💡 我的理念</h2>
+                <blockquote>{philosophy}</blockquote>
+            </div>
+            <div class="about-card">
+                <h2>🛠️ 技术栈</h2>
+                <p class="tech-stack">{tech_html}</p>
+            </div>
+            <div class="about-card">
+                <h2>📬 联系方式</h2>
+                <div class="about-links">{social_html}</div>
+            </div>
         </div>
         <div class="about-content" id="aboutContent">
             {content}
-        </div>
-        <div class="about-links">
-            {social_html}
-        </div>
-        <div class="post-actions">
-            {admin_edit}
         </div>
     </section>"""
 
     html = render_page(config, "关于", body,
                        og_title=f"关于 {config['author']['name']}",
-                       og_desc=config['author'].get('bio', ''),
+                       og_desc=config['author'].get('bio',''),
                        og_type="profile", include_stars=False)
     (OUT_DIR / "about.html").write_text(html, encoding="utf-8")
     print("   ✅ about.html")
@@ -502,8 +637,8 @@ def build_404(config: dict):
     print("   ✅ 404.html")
 
 
-def build_rss(posts: list[dict], config: dict):
-    """Generate rss.xml."""
+def build_rss(posts, poems, config):
+    """Generate rss.xml including posts and poems."""
     site_url = config["site"]["url"].rstrip("/")
     items = ""
     for p in posts:
@@ -513,9 +648,17 @@ def build_rss(posts: list[dict], config: dict):
       <link>{site_url}/post/{p['slug']}.html</link>
       <guid isPermaLink="true">{site_url}/post/{p['slug']}.html</guid>
       <pubDate>{rfc2822(p['date'])}</pubDate>
-      <description>{xml_escape(p.get('excerpt', ''))}</description>
+      <description>{xml_escape(p.get('excerpt',''))}</description>
     </item>"""
-
+    for p in poems:
+        items += f"""
+    <item>
+      <title>【诗歌】{xml_escape(p['title'])}</title>
+      <link>{site_url}/poem/{p['slug']}.html</link>
+      <guid isPermaLink="true">{site_url}/poem/{p['slug']}.html</guid>
+      <pubDate>{rfc2822(p['date'])}</pubDate>
+      <description>{xml_escape(p.get('excerpt',''))}</description>
+    </item>"""
     rss = f"""<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
 <channel>
@@ -531,123 +674,105 @@ def build_rss(posts: list[dict], config: dict):
     (OUT_DIR / "rss.xml").write_text(rss, encoding="utf-8")
     print("   ✅ rss.xml")
 
-
-def build_search_index(posts: list[dict]):
-    """Generate enhanced search-index.json."""
+def build_search_index(posts, poems):
+    def _preview(raw):
+        txt = re.sub(r"<[^>]+>"," ",raw); txt = re.sub(r"\s+"," ",txt).strip()
+        return txt[:300]
     idx = []
     for p in posts:
-        # Strip HTML from body preview
-        body_text = re.sub(r"<[^>]+>", " ", p["raw_body"])
-        body_text = re.sub(r"\s+", " ", body_text).strip()
-        idx.append({
-            "title": p["title"],
-            "date": p["date"],
-            "tags": p.get("tags", []),
-            "excerpt": p.get("excerpt", ""),
-            "body_preview": body_text[:300],
-            "url": f"/post/{p['slug']}.html",
-            "reading_time": p["reading_time"],
-            "pinned": p.get("pinned", False),
-        })
+        idx.append(dict(title=p["title"],date=p["date"],tags=p.get("tags",[]),
+            excerpt=p.get("excerpt",""),body_preview=_preview(p["raw_body"]),
+            url=f"/post/{p['slug']}.html",reading_time=p["reading_time"],
+            pinned=p.get("pinned",False),type="post"))
+    for p in poems:
+        idx.append(dict(title=p["title"],date=p["date"],tags=p.get("tags",[]),
+            excerpt=p.get("excerpt",""),body_preview=_preview(p["raw_body"]),
+            url=f"/poem/{p['slug']}.html",reading_time=p["reading_time"],
+            pinned=False,type="poem"))
     (OUT_DIR / "search-index.json").write_text(json.dumps(idx, ensure_ascii=False, indent=2), encoding="utf-8")
     print("   ✅ search-index.json")
 
-
-def build_tags_json(posts: list[dict]):
-    """Generate tags.json with tag → posts mapping."""
-    tags: dict = {}
-    for p in posts:
-        for t in p.get("tags", []):
-            if t not in tags:
-                tags[t] = {"count": 0, "posts": []}
+def build_tags_json(posts, poems):
+    tags = {}
+    for p in posts + poems:
+        for t in p.get("tags",[]):
+            if t not in tags: tags[t] = {"count":0,"items":[]}
             tags[t]["count"] += 1
-            tags[t]["posts"].append({
-                "title": p["title"],
-                "url": f"/post/{p['slug']}.html",
-                "date": p["date"],
-            })
+            url = f"/post/{p['slug']}.html" if "pinned" in p else f"/poem/{p['slug']}.html"
+            tags[t]["items"].append({"title":p["title"],"url":url,"date":p["date"]})
     (OUT_DIR / "tags.json").write_text(json.dumps(tags, ensure_ascii=False, indent=2), encoding="utf-8")
     print("   ✅ tags.json")
 
-
-def build_sitemap(posts: list[dict], config: dict):
-    """Generate sitemap.xml."""
+def build_sitemap(posts, poems, config):
     site_url = config["site"]["url"].rstrip("/")
     urls = f"""<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>{site_url}/</loc><priority>1.0</priority></url>
+  <url><loc>{site_url}/articles/</loc><priority>0.9</priority></url>
+  <url><loc>{site_url}/poetry/</loc><priority>0.9</priority></url>
   <url><loc>{site_url}/about.html</loc><priority>0.8</priority></url>"""
     for p in posts:
         urls += f'\n  <url><loc>{site_url}/post/{p["slug"]}.html</loc><priority>0.7</priority></url>'
+    for p in poems:
+        urls += f'\n  <url><loc>{site_url}/poem/{p["slug"]}.html</loc><priority>0.7</priority></url>'
     urls += "\n</urlset>"
     (OUT_DIR / "sitemap.xml").write_text(urls, encoding="utf-8")
     print("   ✅ sitemap.xml")
 
-
-def build_robots(config: dict):
-    """Generate robots.txt."""
+def build_robots(config):
     site_url = config["site"]["url"].rstrip("/")
-    robots = f"""User-agent: *
+    (OUT_DIR / "robots.txt").write_text(f"""User-agent: *
 Allow: /
 Sitemap: {site_url}/sitemap.xml
-"""
-    (OUT_DIR / "robots.txt").write_text(robots, encoding="utf-8")
+""", encoding="utf-8")
     print("   ✅ robots.txt")
 
 
-def copy_assets(config: dict):
-    """Copy style.css, admin, generate starfield.css."""
-    # Starfield CSS
+def copy_assets():
     sf_css = generate_starfield_css()
     (OUT_DIR / "starfield.css").write_text(sf_css, encoding="utf-8")
-
-    # Main CSS from src/
     css_src = SRC_DIR / "style.css"
-    if css_src.exists():
-        shutil.copy(css_src, OUT_DIR / "style.css")
-    else:
-        (OUT_DIR / "style.css").write_text("/* placeholder - use src/style.css */", encoding="utf-8")
-
-    # JS from src/
+    if css_src.exists(): shutil.copy(css_src, OUT_DIR / "style.css")
+    else: (OUT_DIR / "style.css").write_text("/* placeholder */", encoding="utf-8")
     js_src = SRC_DIR / "app.js"
-    if js_src.exists():
-        shutil.copy(js_src, OUT_DIR / "app.js")
-
-    # Admin
+    if js_src.exists(): shutil.copy(js_src, OUT_DIR / "app.js")
     admin_src = SRC_DIR / "admin"
     admin_dst = OUT_DIR / "admin"
     admin_dst.mkdir(parents=True, exist_ok=True)
     if admin_src.exists():
         for f in admin_src.iterdir():
-            if f.is_file():
-                shutil.copy(f, admin_dst / f.name)
+            if f.is_file(): shutil.copy(f, admin_dst / f.name)
     print("   ✅ starfield.css, style.css, app.js, admin/")
 
 
 # ── Main ────────────────────────────────────────────────────────────────────
 def main():
-    print(f"🔨 blog-v2 Static Site Builder — v3")
+    print(f"🔨 blog-v2 Static Site Builder — v4")
     print(f"   Python {sys.version.split()[0]}  |  markdown {markdown.__version__}")
 
-    if OUT_DIR.exists():
-        shutil.rmtree(OUT_DIR)
+    if OUT_DIR.exists(): shutil.rmtree(OUT_DIR)
     OUT_POSTS_DIR.mkdir(parents=True, exist_ok=True)
+    OUT_POEMS_DIR.mkdir(parents=True, exist_ok=True)
 
     config = load_json(ROOT / "config.json")
-    posts = load_posts(config)
-    print(f"   Posts: {len(posts)}")
+    posts, poems = load_content(config)
+    print(f"   Posts: {len(posts)}  |  Poems: {len(poems)}")
 
-    build_homepage(posts, config)
+    build_homepage(posts, poems, config)
+    build_articles_list(posts, config)
+    build_poetry_list(poems, config)
     for p in posts:
         build_post_page(p, config)
+    for p in poems:
+        build_poem_page(p, config)
     build_about(config)
     build_404(config)
-    build_rss(posts, config)
-    build_search_index(posts)
-    build_tags_json(posts)
-    build_sitemap(posts, config)
+    build_rss(posts, poems, config)
+    build_search_index(posts, poems)
+    build_tags_json(posts, poems)
+    build_sitemap(posts, poems, config)
     build_robots(config)
-    copy_assets(config)
+    copy_assets()
 
     total = len(list(OUT_DIR.rglob("*")))
     print(f"\n🎉 Done! {total} files written to {OUT_DIR}")
