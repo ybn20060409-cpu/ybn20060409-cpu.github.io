@@ -163,12 +163,12 @@ def generate_starfield_css(seed: int = 42) -> str:
     rng = random.Random(seed)
     stars_small = []
     stars_med = []
-    for _ in range(100):
+    for _ in range(40):
         x = round(rng.uniform(0, 100), 1)
         y = round(rng.uniform(0, 100), 1)
         opacity = round(rng.uniform(0.3, 0.9), 2)
         stars_small.append(f"{x}vw {y}vh 0 {rng.uniform(0.3,0.7):.2f}px rgba(255,255,255,{opacity})")
-    for _ in range(30):
+    for _ in range(12):
         x = round(rng.uniform(0, 100), 1)
         y = round(rng.uniform(0, 100), 1)
         opacity = round(rng.uniform(0.4, 1.0), 2)
@@ -276,11 +276,9 @@ def build_homepage(posts: list[dict], config: dict):
     """Generate index.html with hero, search, tag cloud, and post cards."""
     hero = f"""
     <section class="hero">
-        <a href="/about.html" class="hero-avatar-link" title="查看个人主页">
-            <div class="hero-avatar">{config['author']['avatar']}</div>
-        </a>
-        <h1>{escape_html(config['author']['name'])}</h1>
+        <h1 class="hero-name">{escape_html(config['author']['name'])}</h1>
         <p class="hero-tagline">{escape_html(config['site']['tagline'])}</p>
+        <div class="hero-divider"></div>
         <p class="hero-bio">{escape_html(config['author']['bio'])}</p>
         <div class="hero-links">
             {''.join(f'<a href="{s["url"]}" target="_blank" rel="noopener">{s["platform"]}</a>' for s in config.get("social", []))}
@@ -298,28 +296,29 @@ def build_homepage(posts: list[dict], config: dict):
 
     # Post cards
     if not posts:
-        cards = '<p class="no-posts">还没有文章，敬请期待 ✨</p>'
+        cards = '<p class="no-posts">还没有文章，敬请期待</p>'
     else:
         cards = ""
         for p in posts:
-            tags_html = "".join(f'<span class="tag">{escape_html(t)}</span>' for t in p.get("tags", []))
-            pin_mark = ' <span class="pin-badge">📌 置顶</span>' if p.get("pinned") else ""
+            tags_html = " · ".join(f'<span class="tag-link" data-tag="{escape_html(t)}">{escape_html(t)}</span>' for t in p.get("tags", []))
+            pin_mark = ' <span class="pin-badge">置顶</span>' if p.get("pinned") else ""
             cards += f"""
-        <article class="post-card" data-tags="{','.join(t for t in p['tags'])}">
-            <h2 class="post-card-title"><a href="/post/{p['slug']}.html">{escape_html(p['title'])}</a>{pin_mark}</h2>
-            <div class="post-card-meta">
-                <time datetime="{p['date']}">{p['date']}</time>
-                <span class="card-reading-time">· 约 {p['reading_time']} 分钟</span>
-                <div class="post-card-tags">{tags_html}</div>
-            </div>
-            <p class="post-card-excerpt">{escape_html(p.get('excerpt', ''))}</p>
-            <a href="/post/{p['slug']}.html" class="read-more">阅读全文 →</a>
-        </article>"""
+        <a href="/post/{p['slug']}.html" class="post-card-link" data-tags="{','.join(t for t in p['tags'])}">
+            <article class="post-card">
+                <h2 class="post-card-title">{escape_html(p['title'])}{pin_mark}</h2>
+                <div class="post-card-meta">
+                    <time datetime="{p['date']}">{p['date']}</time>
+                    <span>· 约 {p['reading_time']} 分钟</span>
+                    <span class="post-card-tags">{tags_html}</span>
+                </div>
+                <p class="post-card-excerpt">{escape_html(p.get('excerpt', ''))}</p>
+            </article>
+        </a>"""
 
     body = hero + f"""
     <section class="search-section">
         <div class="search-box">
-            <input type="text" id="searchInput" placeholder="🔍 搜索文章..." autocomplete="off">
+            <input type="text" id="searchInput" placeholder="搜索文章..." autocomplete="off">
             <button id="searchClear" class="search-clear" style="display:none" aria-label="清除搜索">✕</button>
         </div>
         <div class="tag-cloud" id="tagCloud">
@@ -328,7 +327,7 @@ def build_homepage(posts: list[dict], config: dict):
     </section>
 
     <section class="posts-section">
-        <h2 class="section-title">📝 最新文章</h2>
+        <h2 class="section-title">文章</h2>
         <div class="post-list" id="postList">
             {cards}
         </div>
